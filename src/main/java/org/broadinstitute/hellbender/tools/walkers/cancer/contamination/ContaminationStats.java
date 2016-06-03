@@ -1,25 +1,24 @@
 package org.broadinstitute.hellbender.tools.walkers.cancer.contamination;
 
 
-import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+import htsjdk.samtools.util.Locatable;
 
 /**
  * a class that tracks our contamination stats; both the estimate of contamination, as well as the number of sites and other
  * run-specific data
  */
-public class ContaminationStats {
-    final static int ALLELE_COUNT = 4;
-    private GenomeLoc site;
+public final class ContaminationStats {
+    static final int ALLELE_COUNT = 4;
+    private Locatable site;
     private int numberOfSites = 0;
     private double sumOfAlleleFrequency = 0.0;
-    private long basesFor = 0l;
-    private long basesAgainst = 0l;
-    private long basesOther = 0l;
+    private long basesFor = 0L;
+    private long basesAgainst = 0L;
+    private long basesOther = 0L;
     private ContaminationEstimate contaminationEstimate;
     private final int[] alleleBreakdown;
 
-    public ContaminationStats(GenomeLoc site, int numberOfSites, double sumOfAlleleFrequency, long basesFor, long basesAgainst, long basesOther, int alleleBreakdown[], ContaminationEstimate estimate) {
+    public ContaminationStats(Locatable site, int numberOfSites, double sumOfAlleleFrequency, long basesFor, long basesAgainst, long basesOther, int alleleBreakdown[], ContaminationEstimate estimate) {
         this.site = site;
         this.numberOfSites = numberOfSites;
         this.sumOfAlleleFrequency = sumOfAlleleFrequency;
@@ -54,7 +53,7 @@ public class ContaminationStats {
         return this.contaminationEstimate;
     }
 
-    public GenomeLoc getSite() {
+    public Locatable getSite() {
         return site;
     }
 

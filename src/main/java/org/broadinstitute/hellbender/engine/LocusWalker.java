@@ -118,13 +118,13 @@ public abstract class LocusWalker extends GATKTool {
         final Set<String> samples = header.getReadGroups().stream()
                                           .map(SAMReadGroupRecord::getSample)
                                           .collect(Collectors.toSet());
-        CountingReadFilter countedFilter = disableAllReadFilters ?
+        final CountingReadFilter countedFilter = disableAllReadFilters ?
                 new CountingReadFilter("Allow all", ReadFilterLibrary.ALLOW_ALL_READS ) :
                 makeReadFilter();
         // get the LIBS
         LocusIteratorByState libs = new LocusIteratorByState(new ReadFilteringIterator(reads.iterator(), countedFilter), getDownsamplingMethod(), includeDeletions(), includeNs(), keepUniqueReadListInLibs(), samples, header);
         // prepare the iterator
-        Spliterator<AlignmentContext> iterator = (hasIntervals()) ? new IntervalOverlappingIterator<>(libs, intervalsForTraversal, header.getSequenceDictionary()).spliterator() : libs.spliterator();
+        final Spliterator<AlignmentContext> iterator = (hasIntervals()) ? new IntervalOverlappingIterator<>(libs, intervalsForTraversal, header.getSequenceDictionary()).spliterator() : libs.spliterator();
         // iterate over each alignment, and apply the function
         StreamSupport.stream(iterator, false)
             .forEach(alignmentContext -> {

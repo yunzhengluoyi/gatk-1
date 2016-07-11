@@ -46,10 +46,8 @@ import java.util.*;
  *   ./gatk-launch
  *     ContEst \
  *     -R reference.fasta \
- *     -I tumor.bam \
- *     -I normal.bam \
- *     -eval tumor.bam \
- *     -genotype normal.bam \
+ *     -I eval:tumor.bam \
+ *     -I genotype:normal.bam \
  *     --popFile populationAlleleFrequencies.vcf \
  *     -L populationSites.interval_list
  *     [-L targets.interval_list] \
@@ -242,37 +240,20 @@ public final class ContEst extends LocusWalker {
     }
 
     private void findSamples() {
-        // if were not using arrays, we need to figure out what samples are what
-        for(final SAMReaderID id : getReadsDataSource().getReaderIDs()) {
-            if (id.getTags().getPositionalTags().size() == 0) {
-                throw new UserException.BadInput("BAMs must be tagged with " + GENOTYPE_BAM_TAG + " and " + EVAL_BAM_TAG + " when running in array-free mode. Please see the ContEst documentation for more details");
-            }
-
-            // now sort out what tags go with what bam
-            for (final String tag : id.getTags().getPositionalTags()) {
-                if (GENOTYPE_BAM_TAG.equalsIgnoreCase(tag)) {
-                    try {
-                        if (getToolkit().getReadsDataSource().getHeader(id).getReadGroups().size() == 0) {
-                            throw new RuntimeException("No Read Groups found for Genotyping BAM -- Read Groups are Required in sequencing genotype mode!");
-                        }
-                        genotypeSample = getToolkit().getReadsDataSource().getHeader(id).getReadGroups().get(0).getSample();
-                    } catch (final NullPointerException npe) {
-                        throw new UserException.BadInput("Unable to fetch read group from the bam files tagged with " + GENOTYPE_BAM_TAG);
-                    }
-                } else if (EVAL_BAM_TAG.equalsIgnoreCase(tag)) {
-                    try {
-                        if (getToolkit().getReadsDataSource().getHeader(id).getReadGroups().size() == 0) {
-                            throw new RuntimeException("No Read Groups found for Genotyping BAM -- Read Groups are Required in sequencing genotype mode!");
-                        }
-                        evalSample = getToolkit().getReadsDataSource().getHeader(id).getReadGroups().get(0).getSample();
-                    } catch (final NullPointerException npe) {
-                        throw new UserException.BadInput("Unable to fetch read group from the bam files tagged with " + EVAL_BAM_TAG);
-                    }
-                } else {
-                    throw new UserException.BadInput("Unable to process " + tag + " tag, it's not either of the two accepted values: " + GENOTYPE_BAM_TAG + " or " + EVAL_BAM_TAG);
-                }
-            }
+        final SAMFileHeader evalHeader  = getHeaderForSymbolicName(EVAL_BAM_TAG);
+        final SAMFileHeader genotypeHeader  = getHeaderForSymbolicName(GENOTYPE_BAM_TAG);
+        if (evalHeader == null || genotypeHeader == null){
+            throw new UserException.BadInput("BAMs must be tagged with " + GENOTYPE_BAM_TAG + " and " + EVAL_BAM_TAG + " when running in array-free mode. Please see the ContEst documentation for more details");
         }
+        if (evalHeader.getReadGroups().isEmpty()) {
+            throw new RuntimeException("No Read Groups found for Genotyping BAM -- Read Groups are Required in sequencing genotype mode!");
+        }
+        genotypeSample = evalHeader.getReadGroups().get(0).getSample();
+
+        if (genotypeHeader.getReadGroups().isEmpty()) {
+            throw new RuntimeException("No Read Groups found for Genotyping BAM -- Read Groups are Required in sequencing genotype mode!");
+        }
+        evalSample = genotypeHeader.getReadGroups().get(0).getSample();
         if (evalSample == null || genotypeSample == null) {
             throw new UserException.BadInput("You must provide both a " + GENOTYPE_BAM_TAG + " tagged bam and a " + EVAL_BAM_TAG + " tagged bam file.  Please see the ContEst documentation");
         }

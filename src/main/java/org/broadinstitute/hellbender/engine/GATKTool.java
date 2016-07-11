@@ -13,6 +13,7 @@ import org.broadinstitute.hellbender.cmdline.argumentcollections.*;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.utils.SequenceDictionaryUtils;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
+import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
 import org.broadinstitute.hellbender.utils.read.ReadUtils;
 import org.broadinstitute.hellbender.utils.read.SAMFileGATKReadWriter;
@@ -271,6 +272,20 @@ public abstract class GATKTool extends CommandLineProgram {
      */
     public final SAMFileHeader getHeaderForReads() {
         return hasReads() ? reads.getHeader() : null;
+    }
+
+    /**
+     * Returns the SAM header for the given symbolic name of the read input.
+     * Returns {@code null} if no such header is found
+     * (either there are no reads or there is no read source with the given symbolic name).
+     */
+    public final SAMFileHeader getHeaderForSymbolicName(final String symbolicName){
+        Utils.nonNull(symbolicName);
+        if (! hasReads()){
+            return null;
+        }
+        final TaggedInputFileArgument arg = readArguments.getInputsBySymbolicName().get(symbolicName);
+        return arg == null ? null : reads.getReaderForFile(arg.getFile()).getFileHeader();
     }
 
     /**

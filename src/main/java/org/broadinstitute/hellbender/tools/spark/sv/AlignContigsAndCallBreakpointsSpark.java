@@ -74,7 +74,7 @@ public class AlignContigsAndCallBreakpointsSpark extends GATKSparkTool {
                         final List<AssembledBreakpoint> breakpointAssemblies = contigAligner.alignContigs(cc._2);
                         breakpointAssemblies.forEach(b -> results.add(new Tuple2<>(cc._1, b)));
                     });
-                    return results;
+                    return results.iterator();
                 }
             } catch (final IOException e) {
                 throw new GATKException("Cannot run BWA-MEM", e);

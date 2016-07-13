@@ -7,7 +7,6 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.common.CramVersions;
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
-import org.apache.commons.collections4.iterators.IteratorIterable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -228,13 +227,13 @@ public final class ReadsSparkSink {
         if (samOutputFormat == SAMFormat.CRAM) {
             return reads.mapPartitions(readIterator -> {
                 SparkCRAMOutputFormat.setHeader(headerBroadcast.getValue());
-                return new IteratorIterable<>(readIterator);
+                return readIterator;
             });
         }
         else {
             return reads.mapPartitions(readIterator -> {
                 SparkBAMOutputFormat.setHeader(headerBroadcast.getValue());
-                return new IteratorIterable<>(readIterator);
+                return readIterator;
             });
         }
     }

@@ -117,7 +117,7 @@ dependencies {
     compile 'com.google.cloud.genomics:google-genomics-utils:v1beta2-0.30'
 
    compile 'org.ojalgo:ojalgo:39.0'
-    compile ('org.apache.spark:spark-mllib_2.10:1.6.1') {
+    compile ('org.apache.spark:spark-mllib_2.10:2.0.0') {
         // JUL is used by Google Dataflow as the backend logger, so exclude jul-to-slf4j to avoid a loop
         exclude module: 'jul-to-slf4j'
         exclude module: 'javax.servlet'

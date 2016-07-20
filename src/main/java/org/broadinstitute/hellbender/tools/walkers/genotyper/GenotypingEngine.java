@@ -1,6 +1,7 @@
 package org.broadinstitute.hellbender.tools.walkers.genotyper;
 
 import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import org.apache.logging.log4j.LogManager;
@@ -45,6 +46,36 @@ public abstract class GenotypingEngine<Config extends StandardCallerArgumentColl
     private final AFPriorProvider log10AlleleFrequencyPriorsSNPs;
 
     private final AFPriorProvider log10AlleleFrequencyPriorsIndels;
+
+    private class Location implements  Locatable {
+
+        private String contig;
+        private int start;
+        private int end;
+
+        public Location(final String contig, final int start, final int end) {
+            this.contig = contig;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public String getContig() {
+            return contig;
+        }
+
+        @Override
+        public int getStart() {
+            return start;
+        }
+
+        @Override
+        public int getEnd() {
+            return end;
+        }
+    }
+
+    private final List<Location> upstreamDeletionsLoc = new LinkedList<>();
 
     /**
      * Construct a new genotyper engine, on a specific subset of samples.
@@ -229,7 +260,7 @@ public abstract class GenotypingEngine<Config extends StandardCallerArgumentColl
         final AFCalculator afCalculator = afCalculatorProvider.getInstance(vc,defaultPloidy,maxAltAlleles);
         final AFCalculationResult AFresult = afCalculator.getLog10PNonRef(vc, defaultPloidy,maxAltAlleles, getAlleleFrequencyPriors(vc,defaultPloidy,model));
 
-        final OutputAlleleSubset outputAlternativeAlleles = calculateOutputAlleleSubset(AFresult);
+        final OutputAlleleSubset outputAlternativeAlleles = calculateOutputAlleleSubset(AFresult, vc);
 
         // posterior probability that at least one alt allele exists in the samples
         final double probOfAtLeastOneAltAllele = Math.pow(10, AFresult.getLog10PosteriorOfAFGT0());
@@ -334,9 +365,10 @@ public abstract class GenotypingEngine<Config extends StandardCallerArgumentColl
     /**
      * Provided the exact mode computations it returns the appropriate subset of alleles that progress to genotyping.
      * @param afCalculationResult the allele fraction calculation result.
-     * @return never {@code null}.
+     * @param  vc the input variant context
+     * @return information about the alternative allele subsetting {@code null}.
      */
-    private OutputAlleleSubset calculateOutputAlleleSubset(final AFCalculationResult afCalculationResult) {
+    private OutputAlleleSubset calculateOutputAlleleSubset(final AFCalculationResult afCalculationResult, final VariantContext vc) {
         final List<Allele> alleles = afCalculationResult.getAllelesUsedInGenotyping();
 
         final int alternativeAlleleCount = alleles.size() - 1;
@@ -344,22 +376,73 @@ public abstract class GenotypingEngine<Config extends StandardCallerArgumentColl
         final int[] mleCounts = new int[alternativeAlleleCount];
         int outputAlleleCount = 0;
         boolean siteIsMonomorphic = true;
-        for (final Allele alternativeAllele : alleles) {
-            if (alternativeAllele.isReference()) {
-                continue;
-            }
-            final boolean isPlausible = afCalculationResult.isPolymorphicPhredScaledQual(alternativeAllele, configuration.genotypeArgs.STANDARD_CONFIDENCE_FOR_EMITTING);
-            final boolean toOutput = isPlausible || forceKeepAllele(alternativeAllele);
+        int referenceAlleleSize = 0;
+        for (final Allele allele : alleles) {
+            if (allele.isReference() ) {
+                referenceAlleleSize = allele.length();
+            } else {
+                // we want to keep the NON_REF symbolic allele but only in the absence of a non-symbolic allele, e.g.
+                // if we combined a ref / NON_REF gVCF with a ref / alt gVCF
+                final boolean isNonRefWhichIsLoneAltAllele = alternativeAlleleCount == 1 && allele.equals(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE);
+                final boolean isPlausible = afCalculationResult.isPolymorphicPhredScaledQual(allele, configuration.genotypeArgs.STANDARD_CONFIDENCE_FOR_EMITTING);
 
-            siteIsMonomorphic &= ! isPlausible;
-            if (!toOutput) {
-                continue;
+                siteIsMonomorphic &= !isPlausible;
+                boolean toOutput = (isPlausible || forceKeepAllele(allele) || isNonRefWhichIsLoneAltAllele);
+                if ( allele.equals(GATKVCFConstants.SPANNING_DELETION_SYMBOLIC_ALLELE_DEPRECATED) ||
+                        allele.equals(Allele.SPAN_DEL) ) {
+                    toOutput &= coveredByDeletion(vc);
+                }
+                if (toOutput) {
+                    outputAlleles[outputAlleleCount] = allele;
+                    mleCounts[outputAlleleCount++] = afCalculationResult.getAlleleCountAtMLE(allele);
+                    recordDeletion(referenceAlleleSize, allele, vc);
+                }
             }
-            outputAlleles[outputAlleleCount] = alternativeAllele;
-            mleCounts[outputAlleleCount++] = afCalculationResult.getAlleleCountAtMLE(alternativeAllele);
         }
 
         return new OutputAlleleSubset(outputAlleleCount,outputAlleles,mleCounts,siteIsMonomorphic);
+    }
+
+    /**
+     *  Record deletion to keep
+     *  Add deletions to a list.
+     *
+     * @param referenceAlleleSize   reference allele length
+     * @param allele                allele of interest
+     * @param vc                    variant context
+     */
+    private void recordDeletion(final int referenceAlleleSize, final Allele allele, final VariantContext vc) {
+        final int deletionSize = referenceAlleleSize - allele.length();
+
+        // Allele ia a deletion
+        if (deletionSize > 0) {
+            //final GenomeLoc genomeLoc = genomeLocParser.createGenomeLocOnContig(vc.getContig(), vc.getStart(), vc.getStart() + deletionSize);
+            final Location location = new Location(vc.getContig(), vc.getStart(), vc.getStart() + deletionSize);
+            upstreamDeletionsLoc.add(location);
+        }
+    }
+
+    /**
+     * Is the variant context covered by an upstream deletion?
+     *
+     * @param vc    variant context
+     * @return  true if the location is covered by an upstream deletion, false otherwise
+     */
+    private boolean coveredByDeletion(final VariantContext vc) {
+        for (Iterator<Location> it = upstreamDeletionsLoc.iterator(); it.hasNext(); ) {
+            final Location loc = it.next();
+            if (!loc.contig.equals(vc.getContig())) { // past contig deletion.
+                it.remove();
+            } else if (loc.getEnd() < vc.getStart()) { // past position in current contig deletion.
+                it.remove();
+            } else if (loc.getStart() == vc.getStart()) {
+                // ignore this deletion, the symbolic one does not make reference to it.
+            } else { // deletion covers.
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

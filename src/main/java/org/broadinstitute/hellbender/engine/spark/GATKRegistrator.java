@@ -71,6 +71,6 @@ public class GATKRegistrator implements KryoRegistrator {
         //     IndelRealignmentTarget
         //     TargetSet
         //     ZippedTargetSet
-        ADAMregistrator.registerClasses(kryo);
+        //ADAMregistrator.registerClasses(kryo); // TODO: reinstate when ADAM supports Spark 2
     }
 }

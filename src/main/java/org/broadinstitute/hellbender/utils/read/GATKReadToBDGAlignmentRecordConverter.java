@@ -4,9 +4,10 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import org.apache.spark.api.java.function.Function;
 import org.bdgenomics.formats.avro.AlignmentRecord;
-import org.bdgenomics.adam.converters.SAMRecordConverter;
+//import org.bdgenomics.adam.converters.SAMRecordConverter;
 import org.bdgenomics.adam.models.SequenceDictionary;
 import org.bdgenomics.adam.models.RecordGroupDictionary;
+import org.broadinstitute.hellbender.exceptions.GATKException;
 
 
 import java.io.Serializable;
@@ -15,7 +16,7 @@ import java.io.Serializable;
  * Converts a GATKRead to a BDG AlignmentRecord
  */
 public class GATKReadToBDGAlignmentRecordConverter {
-    private static final SAMRecordConverter converter = new SAMRecordConverter();
+    //private static final SAMRecordConverter converter = new SAMRecordConverter();
 
     private SAMFileHeader header;
     private SequenceDictionary dict;
@@ -35,11 +36,13 @@ public class GATKReadToBDGAlignmentRecordConverter {
 
     public static AlignmentRecord convert(
             final GATKRead gatkRead, final SAMFileHeader header, final SequenceDictionary dict, final RecordGroupDictionary readGroups ) {
-        return converter.convert(gatkRead.convertToSAMRecord(header), dict, readGroups);
+        throw new GATKException("ADAM is not yet supported with Spark 2.");
+        //return converter.convert(gatkRead.convertToSAMRecord(header), dict, readGroups);
     }
 
     public static AlignmentRecord convert(
             final SAMRecord sam, final SequenceDictionary dict, final RecordGroupDictionary readGroups ) {
-        return converter.convert(sam, dict, readGroups);
+        throw new GATKException("ADAM is not yet supported with Spark 2.");
+        //return converter.convert(sam, dict, readGroups);
     }
 }

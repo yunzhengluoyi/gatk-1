@@ -48,6 +48,24 @@ public class NioBam implements Serializable {
     public NioBam(String gcsFilename, String indexGcsFilename) throws IOException {
         this.bam = gcsFilename;
         this.index = indexGcsFilename;
+        init();
+    }
+
+    /** Finds the index file, then calls NioBam(bam, index). **/
+    public NioBam(String gcsFilename) throws IOException {
+        String indexFilename = gcsFilename + ".bai";
+        if (!Files.exists(BucketUtils.getPathOnGcs(indexFilename))) {
+            int i = gcsFilename.lastIndexOf('.');
+            if (i>=0) {
+                indexFilename = gcsFilename.substring(0, i) + ".bai";
+            }
+        }
+        this.bam = gcsFilename;
+        this.index = indexFilename;
+        init();
+    }
+
+    private void init() throws IOException {
         Path bamPath = BucketUtils.getPathOnGcs(bam);
         Path bamIndexPath = BucketUtils.getPathOnGcs(index);
         if (!Files.exists(bamPath)) {

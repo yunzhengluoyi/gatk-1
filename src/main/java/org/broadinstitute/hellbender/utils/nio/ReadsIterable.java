@@ -10,6 +10,7 @@ import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.hellbender.utils.gcs.BucketUtils;
 import org.broadinstitute.hellbender.utils.nio.ChannelAsSeekableStream;
 import org.broadinstitute.hellbender.utils.nio.SeekableByteChannelPrefetcher;
@@ -37,21 +38,19 @@ public class ReadsIterable implements Iterable<SAMRecord>, Serializable {
     final QueryInterval interval;
     final boolean removeHeader = true;
 
-    class ReadsIterator implements Iterator<SAMRecord> {
+    class ReadsIterator implements CloseableIterator<SAMRecord> {
         final int BUFSIZE = 200 * 1024 * 1024;
         private SamReader bam;
-        private long count = 0;
         private SAMRecordIterator query;
         private SAMRecord nextRecord = null;
         private boolean done = false;
 
         public ReadsIterator() throws IOException {
-            List<SAMRecord> ret = new ArrayList<>();
             Path fpath = BucketUtils.getPathOnGcs(path);
-            byte[] data = index;
-            SeekableStream indexInMemory = new ByteArraySeekableStream(data);
-            SeekableByteChannelPrefetcher chan2 = new SeekableByteChannelPrefetcher(Files.newByteChannel(fpath), BUFSIZE);
-            ChannelAsSeekableStream bamOverNIO = new ChannelAsSeekableStream(chan2, path.toString());
+            byte[] indexData = index;
+            SeekableStream indexInMemory = new ByteArraySeekableStream(indexData);
+            SeekableByteChannelPrefetcher chan = new SeekableByteChannelPrefetcher(Files.newByteChannel(fpath), BUFSIZE);
+            ChannelAsSeekableStream bamOverNIO = new ChannelAsSeekableStream(chan, path.toString());
             bam = SamReaderFactory.makeDefault()
                     .validationStringency(ValidationStringency.LENIENT)
                     .enable(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES)
@@ -80,14 +79,7 @@ public class ReadsIterable implements Iterable<SAMRecord>, Serializable {
             boolean ret = (nextRecord != null);
             if (!ret) {
                 done = true;
-                try {
-                    query.close();
-                    query = null;
-                    bam.close();
-                    bam = null;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                close();
             }
             return ret;
         }
@@ -103,7 +95,6 @@ public class ReadsIterable implements Iterable<SAMRecord>, Serializable {
             if (!hasNext()) throw new NoSuchElementException();
             SAMRecord ret = nextRecord;
             nextRecord = null;
-            count++;
             return ret;
         }
 
@@ -116,11 +107,22 @@ public class ReadsIterable implements Iterable<SAMRecord>, Serializable {
                     if (removeHeader) {
                         sr.setHeader(null);
                     }
-                    count++;
                     return sr;
                 }
             }
             return null;
+        }
+
+        public void close() {
+            if (null==query) return;
+            try {
+                query.close();
+                query = null;
+                bam.close();
+                bam = null;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

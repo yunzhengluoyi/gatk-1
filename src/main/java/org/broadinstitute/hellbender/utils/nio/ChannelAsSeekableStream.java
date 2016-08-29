@@ -14,6 +14,7 @@ public class ChannelAsSeekableStream extends SeekableStream {
 
     private final SeekableByteChannel chan;
     private final String source;
+    private ByteBuffer oneByte;
 
     public ChannelAsSeekableStream(SeekableByteChannel chan) {
         this.chan = chan;
@@ -51,8 +52,6 @@ public class ChannelAsSeekableStream extends SeekableStream {
      * has been reached, the value <code>-1</code> is returned. This method
      * blocks until input data is available, the end of the stream is detected,
      * or an exception is thrown.
-     * <p>
-     * <p> A subclass must provide an implementation of this method.
      *
      * @return the next byte of data, or <code>-1</code> if the end of the
      * stream is reached.
@@ -60,7 +59,11 @@ public class ChannelAsSeekableStream extends SeekableStream {
      */
     @Override
     public int read() throws IOException {
-        ByteBuffer buf = ByteBuffer.allocate(1);
+        ByteBuffer buf = oneByte;
+        if (null == buf) {
+            buf = ByteBuffer.allocate(1);
+            oneByte = buf;
+        }
         chan.read(buf);
         if (buf.remaining() == 0) {
             return -1;

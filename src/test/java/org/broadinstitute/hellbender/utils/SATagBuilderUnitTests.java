@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.utils;
 
+import htsjdk.samtools.SAMException;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.TextCigarCodec;
@@ -166,6 +167,17 @@ public class SATagBuilderUnitTests {
         read4.setAttribute("SA","2,30000,-,4M,100,4;;4,10003,+,4D,200,,4;");
 
         return new Object[][] {{read1},{read2},{read3},{read4}};
+    }
+
+    // This feature is waiting on the pull request at https://github.com/samtools/htsjdk/pull/693. Once SAMUtils.getOtherCannonicalAlignment()
+    // is updated to handle '*' for empty NM fields this should no longer produce an exception and "expectedExceptions" can be removed.
+    @Test(expectedExceptions = SAMException.class)
+    public void testEmptyNMTagSupport() {
+        SAMFileHeader header = ArtificialReadUtils.createArtificialSamHeader();
+        GATKRead read = ArtificialReadUtils.createArtificialRead(header, "name", "2", 1, "AAAAAAAAAA".getBytes(), "##########".getBytes());
+        read.setAttribute("SA","1,191,-,8M2S,60,*;");
+        List<GATKRead> reads = (new SATagBuilder(read)).getArtificialReadsBasedOnSATag(header);
+        Assert.assertFalse(reads.get(0).hasAttribute("NM"));
     }
 
 }

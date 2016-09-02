@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * supplementary to each other with correct SA tags. If there are existing SA tags on any of the reads they will be
  * preserved in the operation.
  */
-final public class SATagBuilder {
-    final private List<SARead> supplementaryReads;
+public class SATagBuilder {
+    private List<SARead> supplementaryReads;
     final private GATKRead read;
     private SARead thisRead;
 

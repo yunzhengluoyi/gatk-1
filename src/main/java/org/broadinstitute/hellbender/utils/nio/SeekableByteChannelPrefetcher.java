@@ -28,17 +28,17 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SeekableByteChannelPrefetcher implements SeekableByteChannel {
 
-    final SeekableByteChannel chan;
-    final int bufSize;
-    final ExecutorService exec;
-    final long size;
-    List<WorkUnit> full = new ArrayList<>();
-    WorkUnit fetching = null;
+    private final SeekableByteChannel chan;
+    private final int bufSize;
+    private final ExecutorService exec;
+    private final long size;
+    private List<WorkUnit> full = new ArrayList<>();
+    private WorkUnit fetching = null;
     // total number of buffers
-    final int BUF_COUNT = 2;
+    private final static int BUF_COUNT = 2;
     // where we pretend to be, wrt returning bytes from read()
-    long position = 0;
-    boolean open;
+    private long position = 0;
+    private boolean open;
     Stopwatch betweenCallsToRead = Stopwatch.createUnstarted();
 
     // statistics, for profiling
@@ -251,18 +251,7 @@ public final class SeekableByteChannelPrefetcher implements SeekableByteChannel 
     }
 
     /**
-     * Writes a sequence of bytes to this channel from the given buffer.
-     * <p>
-     * <p> Bytes are written starting at this channel's current position, unless
-     * the channel is connected to an entity such as a file that is opened with
-     * the {@link StandardOpenOption#APPEND APPEND} option, in
-     * which case the position is first advanced to the end. The entity to which
-     * the channel is connected is grown, if necessary, to accommodate the
-     * written bytes, and then the position is updated with the number of bytes
-     * actually written. Otherwise this method behaves exactly as specified by
-     * the {@link WritableByteChannel} interface.
-     *
-     * @param src
+     * Writing isn't supported.
      */
     @Override
     public int write(ByteBuffer src) throws IOException {
@@ -328,25 +317,7 @@ public final class SeekableByteChannelPrefetcher implements SeekableByteChannel 
     }
 
     /**
-     * Truncates the entity, to which this channel is connected, to the given
-     * size.
-     * <p>
-     * <p> If the given size is less than the current size then the entity is
-     * truncated, discarding any bytes beyond the new end. If the given size is
-     * greater than or equal to the current size then the entity is not modified.
-     * In either case, if the current position is greater than the given size
-     * then it is set to that size.
-     * <p>
-     * <p> An implementation of this interface may prohibit truncation when
-     * connected to an entity, typically a file, opened with the {@link
-     * StandardOpenOption#APPEND APPEND} option.
-     *
-     * @param size The new size, a non-negative byte count
-     * @return This channel
-     * @throws NonWritableChannelException If this channel was not opened for writing
-     * @throws ClosedChannelException      If this channel is closed
-     * @throws IllegalArgumentException    If the new size is negative
-     * @throws IOException                 If some other I/O error occurs
+     * Not supported.
      */
     @Override
     public SeekableByteChannel truncate(long size) throws IOException {

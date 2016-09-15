@@ -1,6 +1,5 @@
 package org.broadinstitute.hellbender.utils.nio;
 
-import com.google.cloud.storage.contrib.nio.CloudStorageFileSystem;
 import htsjdk.samtools.QueryInterval;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -12,17 +11,12 @@ import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.hellbender.utils.gcs.BucketUtils;
-import org.broadinstitute.hellbender.utils.nio.ChannelAsSeekableStream;
-import org.broadinstitute.hellbender.utils.nio.SeekableByteChannelPrefetcher;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -33,13 +27,13 @@ import java.util.NoSuchElementException;
 public class ReadsIterable implements Iterable<SAMRecord>, Serializable {
 
     private static final long serialVersionUID = 1L;
-    final String path;
-    final byte[] index;
-    final QueryInterval interval;
-    final boolean removeHeader = true;
+    private final String path;
+    private final byte[] index;
+    private final QueryInterval interval;
+    private final boolean removeHeader = true;
 
     class ReadsIterator implements CloseableIterator<SAMRecord> {
-        final int BUFSIZE = 200 * 1024 * 1024;
+        private final static int BUFSIZE = 200 * 1024 * 1024;
         private SamReader bam;
         private SAMRecordIterator query;
         private SAMRecord nextRecord = null;
@@ -50,7 +44,7 @@ public class ReadsIterable implements Iterable<SAMRecord>, Serializable {
             byte[] indexData = index;
             SeekableStream indexInMemory = new ByteArraySeekableStream(indexData);
             SeekableByteChannelPrefetcher chan = new SeekableByteChannelPrefetcher(Files.newByteChannel(fpath), BUFSIZE);
-            ChannelAsSeekableStream bamOverNIO = new ChannelAsSeekableStream(chan, path.toString());
+            ChannelAsSeekableStream bamOverNIO = new ChannelAsSeekableStream(chan, path);
             bam = SamReaderFactory.makeDefault()
                     .validationStringency(ValidationStringency.LENIENT)
                     .enable(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES)

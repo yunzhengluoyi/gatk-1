@@ -1,6 +1,5 @@
 package org.broadinstitute.hellbender.utils.nio;
 
-import com.google.cloud.storage.contrib.nio.CloudStorageFileSystem;
 import htsjdk.samtools.BAMFileSpan;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.Chunk;
@@ -24,7 +23,6 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -39,10 +37,9 @@ import java.util.List;
 public class NioBam implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    final String bam;
-    final String index;
-
-    transient byte[] indexCache;
+    private final String bam;
+    private final String index;
+    private transient byte[] indexCache;
 
     /** Checks the files exists, then stores them. **/
     public NioBam(String gcsFilename, String indexGcsFilename) throws IOException {

@@ -1,22 +1,5 @@
 package org.broadinstitute.hellbender.tools.examples;
 
-import com.google.cloud.storage.contrib.nio.CloudStorageFileSystem;
-import com.google.common.base.Stopwatch;
-import htsjdk.samtools.BAMFileSpan;
-import htsjdk.samtools.BAMIndex;
-import htsjdk.samtools.Chunk;
-import htsjdk.samtools.QueryInterval;
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMRecordIterator;
-import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.SamInputResource;
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.SamReaderFactory;
-import htsjdk.samtools.ValidationStringency;
-import htsjdk.samtools.seekablestream.ByteArraySeekableStream;
-import htsjdk.samtools.seekablestream.SeekableStream;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.broadinstitute.hellbender.cmdline.Argument;
 import org.broadinstitute.hellbender.cmdline.CommandLineProgramProperties;
@@ -24,22 +7,12 @@ import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import org.broadinstitute.hellbender.cmdline.programgroups.ReadProgramGroup;
 import org.broadinstitute.hellbender.engine.spark.SparkCommandLineProgram;
 import org.broadinstitute.hellbender.exceptions.UserException;
-import org.broadinstitute.hellbender.utils.nio.ChannelAsSeekableStream;
 import org.broadinstitute.hellbender.utils.nio.NioBam;
-import org.broadinstitute.hellbender.utils.nio.ReadsIterable;
-import org.broadinstitute.hellbender.utils.nio.SeekableByteChannelPrefetcher;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Example of how to use Spark on Google Cloud Storage directly, without using the GCS Hadoop Connector.
@@ -62,9 +35,9 @@ public class ExampleNioCountReads extends SparkCommandLineProgram {
     @Argument(fullName = "parts", doc = "number of partitions", optional = false)
     private int parts = 3;
 
-    private PrintStream outputStream;
-
     private void countReads(JavaSparkContext ctx) throws IOException {
+
+        PrintStream outputStream;
 
         try {
             outputStream = OUTPUT_FILE != null ? new PrintStream(OUTPUT_FILE) : System.out;

@@ -1,8 +1,7 @@
 package org.broadinstitute.hellbender.utils.nio;
 
-import org.junit.Assert;
 import org.testng.annotations.Test;
-
+import org.testng.Assert;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
@@ -10,14 +9,12 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.testng.Assert.*;
-
 /**
  *
  */
 public class SeekableByteChannelPrefetcherTest {
     // A file big enough to try seeks on.
-    final String input = "src/test/resources/exampleFASTA.fasta";
+    private final String input = "src/test/resources/exampleFASTA.fasta";
 
     @Test
     public void testRead() throws Exception {
@@ -63,7 +60,7 @@ public class SeekableByteChannelPrefetcherTest {
         readFully(chan2, two);
 
         Assert.assertEquals(one.position(), two.position());
-        Assert.assertArrayEquals(one.array(), two.array());
+        Assert.assertEquals(one.array(), two.array());
     }
 
     private void testSeeking(SeekableByteChannel chan1, SeekableByteChannel chan2, int position) throws IOException {
@@ -77,14 +74,14 @@ public class SeekableByteChannelPrefetcherTest {
         readFully(chan2, two);
 
         Assert.assertEquals(one.position(), two.position());
-        Assert.assertArrayEquals(one.array(), two.array());
+        Assert.assertEquals(one.array(), two.array());
     }
 
     private void readFully(ReadableByteChannel chan, ByteBuffer buf) throws IOException {
         // the countdown isn't strictly necessary but it protects us against infinite loops
         // for some potential bugs in the channel implementation.
         int countdown = buf.capacity();
-        while (chan.read(buf) > 0  && countdown-- > 0) {};
+        while (chan.read(buf) > 0  && countdown-- > 0) {}
     }
 
 }

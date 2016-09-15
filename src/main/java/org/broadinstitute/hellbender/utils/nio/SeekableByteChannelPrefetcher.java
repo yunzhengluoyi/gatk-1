@@ -8,7 +8,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -39,7 +38,7 @@ public final class SeekableByteChannelPrefetcher implements SeekableByteChannel 
     // where we pretend to be, wrt returning bytes from read()
     private long position = 0;
     private boolean open;
-    Stopwatch betweenCallsToRead = Stopwatch.createUnstarted();
+    private Stopwatch betweenCallsToRead = Stopwatch.createUnstarted();
 
     // statistics, for profiling
     // time spent blocking the user because we're waiting on the network
@@ -77,9 +76,9 @@ public final class SeekableByteChannelPrefetcher implements SeekableByteChannel 
     private static class WorkUnit implements Callable<ByteBuffer>, Closeable {
         public final ByteBuffer buf;
         public long blockIndex;
-        final SeekableByteChannel chan;
-        final int blockSize;
-        Future<ByteBuffer> futureBuf;
+        private final SeekableByteChannel chan;
+        private final int blockSize;
+        private Future<ByteBuffer> futureBuf;
 
         public WorkUnit(SeekableByteChannel chan, int blockSize, long blockIndex) {
             this.chan = chan;
@@ -97,7 +96,7 @@ public final class SeekableByteChannelPrefetcher implements SeekableByteChannel 
             }
             chan.position(pos);
             // read until buffer is full, or EOF
-            while (chan.read(buf) > 0) {};
+            while (chan.read(buf) > 0) {}
             return buf;
         }
 

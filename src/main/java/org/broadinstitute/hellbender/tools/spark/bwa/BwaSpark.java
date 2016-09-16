@@ -17,6 +17,8 @@ import org.broadinstitute.hellbender.utils.read.GATKRead;
 import org.broadinstitute.hellbender.utils.read.ReadsWriteFormat;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @CommandLineProgramProperties(summary = "Runs BWA",
         oneLineSummary = "BWA on Spark",
@@ -30,7 +32,7 @@ public final class BwaSpark extends GATKSparkTool {
     private String output;
 
     @ArgumentCollection
-    private BwaArgumentCollection bwaArgs = new BwaArgumentCollection();
+    private final BwaArgumentCollection bwaArgs = new BwaArgumentCollection();
 
     @Override
     public boolean requiresReference() {
@@ -58,8 +60,10 @@ public final class BwaSpark extends GATKSparkTool {
     }
 
     @Override
-    public ReadFilter makeReadFilter() {
-        return ReadFilterLibrary.HAS_MATCHING_BASES_AND_QUALS
-                .and(ReadFilterLibrary.SEQ_IS_STORED);
+    public List<ReadFilter> getDefaultReadFilters() {
+        final List<ReadFilter> filters = new ArrayList<>();
+        filters.add(ReadFilterLibrary.HAS_MATCHING_BASES_AND_QUALS);
+        filters.add(ReadFilterLibrary.SEQ_IS_STORED);
+        return filters;
     }
 }
